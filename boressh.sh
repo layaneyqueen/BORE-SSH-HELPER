@@ -41,22 +41,35 @@ fi
 screen -dmS "$SCREEN_NAME" bash -c "bore local 22 --to bore.pub | tee $TMP_LOG"
 
 # Wait until remote_port line appears
+echo "Starting free SSH IP..."
+
+# Ensure screen exists
+if ! command -v screen &>/dev/null; then
+    echo "Please install 'screen' first."
+    exit 1
+fi
+
+# Start bore in a screen, redirect output to log
+SCREEN_NAME="bore_ssh_tunnel"
+LOG_FILE="/tmp/bore_ssh_tunnel.log"
+
+# Kill old screen if exists
+screen -S "$SCREEN_NAME" -X quit 2>/dev/null
+
+# Start bore in a detached screen
+screen -dmS "$SCREEN_NAME" bash -c "bore local 22 --to bore.pub | tee $LOG_FILE"
+
+# Wait for the port to appear in the log
 echo "Starting bore tunnel..."
 PORT=""
-for i in {1..15}; do
-    if grep -q 'remote_port=' "$TMP_LOG"; then
-        PORT=$(grep -oP 'remote_port=\K[0-9]+' "$TMP_LOG" | head -n1)
-        break
+while [[ -z "$PORT" ]]; do
+    if [[ -f "$LOG_FILE" ]]; then
+        PORT=$(grep -oP 'remote_port=\K[0-9]+' "$LOG_FILE")
     fi
     sleep 1
 done
 
-if [ -z "$PORT" ]; then
-    echo "Failed to get remote port. Check the screen log with: screen -r $SCREEN_NAME"
-    exit 1
-fi
-
-# Print the SSH info
 echo "VPS Booted successfully."
 echo "SSH Address: google-vm.orbitsrv.qzz.io"
 echo "Port: $PORT"
+echo "Tunnel is running in screen session: $SCREEN_NAME"
