@@ -2,18 +2,21 @@
 
 echo "Starting free SSH IP..."
 
-# Ensure screen is installed
-if ! command -v screen &>/dev/null; then
-    echo "Installing screen..."
-    sudo apt update
-    sudo apt install screen -y || { echo "Please run as root or using sudo!"; exit 1; }
+# Ensure running as root
+if [[ $EUID -ne 0 ]]; then
+   echo "Please run as root or using sudo!"
+   exit 1
 fi
 
-# Install bore if missing
+# Check and install dependencies for Bore
 if ! command -v bore &>/dev/null; then
-    echo "Installing build dependencies..."
-    sudo apt update
-    sudo apt install build-essential pkg-config libssl-dev curl -y || { echo "Please run as root or using sudo!"; exit 1; }
+    echo "Bore not found, installing dependencies..."
+    apt update
+    apt install -y build-essential pkg-config libssl-dev curl screen
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to install dependencies. Please check your package manager."
+        exit 1
+    fi
 
     echo "Installing Rust..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -21,27 +24,13 @@ if ! command -v bore &>/dev/null; then
     rustup install nightly
     rustup default nightly
 
-    echo "Installing bore-cli..."
+    echo "Installing Bore CLI..."
     cargo install bore-cli
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to install Bore CLI."
+        exit 1
+    fi
 fi
-
-# Start bore in a detached screen session and log output to a temp file
-SCREEN_NAME="bore_ssh_tunnel"
-TMP_LOG="/tmp/${SCREEN_NAME}.log"
-
-# Remove old log if exists
-[ -f "$TMP_LOG" ] && rm "$TMP_LOG"
-
-# Kill previous screen session if exists
-if screen -list | grep -q "$SCREEN_NAME"; then
-    screen -S "$SCREEN_NAME" -X quit
-fi
-
-# Start bore in screen and log output
-screen -dmS "$SCREEN_NAME" bash -c "bore local 22 --to bore.pub | tee $TMP_LOG"
-
-# Wait until remote_port line appears
-echo "Starting free SSH IP..."
 
 # Ensure screen exists
 if ! command -v screen &>/dev/null; then
@@ -49,18 +38,17 @@ if ! command -v screen &>/dev/null; then
     exit 1
 fi
 
-# Start bore in a screen, redirect output to log
 SCREEN_NAME="bore_ssh_tunnel"
 LOG_FILE="/tmp/bore_ssh_tunnel.log"
 
 # Kill old screen if exists
 screen -S "$SCREEN_NAME" -X quit 2>/dev/null
 
-# Start bore in a detached screen
+# Start Bore in a detached screen, log output
+echo "Starting bore tunnel..."
 screen -dmS "$SCREEN_NAME" bash -c "bore local 22 --to bore.pub | tee $LOG_FILE"
 
-# Wait for the port to appear in the log
-echo "Starting bore tunnel..."
+# Wait for remote_port
 PORT=""
 while [[ -z "$PORT" ]]; do
     if [[ -f "$LOG_FILE" ]]; then
@@ -73,3 +61,4 @@ echo "VPS Booted successfully."
 echo "SSH Address: google-vm.orbitsrv.qzz.io"
 echo "Port: $PORT"
 echo "Tunnel is running in screen session: $SCREEN_NAME"
+echo "You can reconnect to the tunnel log with: screen -r $SCREEN_NAME"
