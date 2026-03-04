@@ -25,22 +25,25 @@ if ! command -v bore &>/dev/null; then
     cargo install bore-cli
 fi
 
-# Start bore in a detached screen session
+# Start bore in a detached screen session and log output to a temp file
 SCREEN_NAME="bore_ssh_tunnel"
+TMP_LOG="/tmp/${SCREEN_NAME}.log"
+
+# Remove old log if exists
+[ -f "$TMP_LOG" ] && rm "$TMP_LOG"
 
 # Kill previous screen session if exists
 if screen -list | grep -q "$SCREEN_NAME"; then
     screen -S "$SCREEN_NAME" -X quit
 fi
 
-# Start bore in screen and log output to a temp file
-TMP_LOG=$(mktemp)
-screen -dmS $SCREEN_NAME bash -c "bore local 22 --to bore.pub | tee $TMP_LOG"
+# Start bore in screen and log output
+screen -dmS "$SCREEN_NAME" bash -c "bore local 22 --to bore.pub | tee $TMP_LOG"
 
-# Wait until the remote_port line appears
+# Wait until remote_port line appears
 echo "Starting bore tunnel..."
 PORT=""
-for i in {1..15}; do   # try up to 15 seconds
+for i in {1..15}; do
     if grep -q 'remote_port=' "$TMP_LOG"; then
         PORT=$(grep -oP 'remote_port=\K[0-9]+' "$TMP_LOG" | head -n1)
         break
