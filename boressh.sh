@@ -33,12 +33,25 @@ if screen -list | grep -q "$SCREEN_NAME"; then
     screen -S "$SCREEN_NAME" -X quit
 fi
 
-# Start bore in screen and capture port
-screen -dmS $SCREEN_NAME bash -c 'bore local 22 --to bore.pub'
+# Start bore in screen and log output to a temp file
+TMP_LOG=$(mktemp)
+screen -dmS $SCREEN_NAME bash -c "bore local 22 --to bore.pub | tee $TMP_LOG"
 
-# Wait a bit and get the remote port
-sleep 5
-PORT=$(screen -ls $SCREEN_NAME -X hardcopy /tmp/bore_output.txt && grep -oP 'remote_port=\K[0-9]+' /tmp/bore_output.txt | head -n1)
+# Wait until the remote_port line appears
+echo "Starting bore tunnel..."
+PORT=""
+for i in {1..15}; do   # try up to 15 seconds
+    if grep -q 'remote_port=' "$TMP_LOG"; then
+        PORT=$(grep -oP 'remote_port=\K[0-9]+' "$TMP_LOG" | head -n1)
+        break
+    fi
+    sleep 1
+done
+
+if [ -z "$PORT" ]; then
+    echo "Failed to get remote port. Check the screen log with: screen -r $SCREEN_NAME"
+    exit 1
+fi
 
 # Print the SSH info
 echo "VPS Booted successfully."
