@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting free SSH IP..."
+echo "Loading..."
 
 # Ensure root
 if [[ $EUID -ne 0 ]]; then
@@ -50,8 +50,13 @@ if [[ -z "$PORT" ]]; then
     exit 1
 fi
 
-echo "VPS Booted successfully."
-echo "SSH Address: google-vm.orbitsrv.qzz.io"
+echo " __                         "
+echo "/ _\\_   _  ___ ___  ___ ___ "
+echo "\\ \\| | | |/ __/ _ \\/ __/ __|"
+echo "_\\ \\ |_| | (_|  __/\\__ \\__ \\"
+echo "\\__/\\__,_|\\___\\___||___/___/"
+echo ""
+echo "IP: ssh.orbitsrv.qzz.io"
 echo "Port: $PORT"
-echo "Tunnel is running in screen session: $SCREEN_NAME"
-echo "Reconnect to tunnel log with: screen -r $SCREEN_NAME"
+echo ""
+echo "[!] Check tunnel status by using 'screen -r bore_ssh_tunnel' (Remember to press CTRL A + D to leave logs, CTRL C will kill your tunnel)"
