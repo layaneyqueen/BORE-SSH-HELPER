@@ -45,8 +45,8 @@ for i in {1..20}; do
 done
 
 if [[ -z "$PORT" ]]; then
-    echo "Failed to detect Bore port. Tunnel may not have started yet."
-    echo "Check the screen manually: screen -r $SCREEN_NAME"
+    echo "Failed to detect Bore port."
+    echo "Check the port manually: screen -r $SCREEN_NAME"
     exit 1
 fi
 
@@ -56,6 +56,7 @@ echo "\\ \\| | | |/ __/ _ \\/ __/ __|"
 echo "_\\ \\ |_| | (_|  __/\\__ \\__ \\"
 echo "\\__/\\__,_|\\___\\___||___/___/"
 echo ""
+echo "Service: SSH"
 echo "IP: ssh.orbitsrv.qzz.io"
 echo "Port: $PORT"
 echo ""
